@@ -1,4 +1,33 @@
 mpu6050Pi
 =========
 
-MPU6050 DMP driver for Raspberry Pi. Add a simple C++ interface, easy to use.
+MPU6050 driver for Raspberry Pi.
+
+Originate from Embedded MotionDriver 5.1.
+
+Now can use in Raspberry Pi.
+
+Add a simple C++ interface, and a little extension.
+
+Need library i2c-dev
+
+to install:
+$sudo apt-get update
+$sudo apt-get upgrade
+$sudo apt-get install libi2c-dev
+$sudo apt-get install i2c-tools
+$./configure
+$make
+$sudo make install
+
+Default install to /usr/local/include and /usr/local/lib
+
+run example:
+cd ./example
+$./configure
+$make
+sudo ./dmptest
+
+by Jiang YuTong
+
+
