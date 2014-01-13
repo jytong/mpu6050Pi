@@ -12,7 +12,7 @@ struct __CaptureData_t
 {
 	float m_sDataGyro[3];		// x y z
 	float m_sDataAccel[3];		// x y z
-	long m_lDataQuat[4];		// w x y z
+	float m_fDataQuat[4];		// w x y z
 	float m_fTemperature;
 	unsigned long m_ulTimestamp;
 };
@@ -122,14 +122,15 @@ private:
 	MPUManager();
 	~MPUManager();
 
-	bool __StartDevice();
+	bool __StartDevice( bool p_bSelfTest );
 	bool __LoadDataFromDevice( __CaptureData_t *p_pData );
 	static void *__ThreadWrap( void *p_pArg );
 	void __WorkThread();
 	void __WorkThreadPush();
+	bool __RunSelfTest();
 
 	// current accel sensitivity
-	float m_fCurAccelSensitivity;
+	unsigned short m_usCurAccelSensitivity;
 	// current gyroscope sensitivity
 	float m_fCurGyroSensitivity;
 	// use for __UDT_PullRealTime mode
@@ -154,15 +155,17 @@ public:
 	//     Raw accelerometer data
 	//     Calibrated gyroscope data
 	//     Quaternion
+	//     temperature
 	bool RemoveDataAccel();
 	bool RemoveDataGyro();
 	bool RemoveDataQuaternion();
+	bool RemoveDataTemperature();
 
 	bool SetSampleRate( unsigned short p_iRate );
 	bool SetUpdateDataType( __UpdateDataType p_iType, void (*p_pfunc)(const __CaptureData_t *) );
 
 	// start capture data
-	bool Start();
+	bool Start( bool p_bSelfTest=false );
 
 	// stop capture, device goto sleep mode
 	void Stop();

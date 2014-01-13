@@ -10,6 +10,9 @@
 
 #include <time.h>
 
+#define DMP_FEATURE_SEND_TEMPERATURE	(0x200)
+#define QUATERNION_CONSTANT			0x40000000
+
 MPUManager::MPUManager()
 {
 	m_usSampleRate = 100;
@@ -20,9 +23,9 @@ MPUManager::MPUManager()
 	m_iThreadID = 0;
 	m_usPackageLength = 0;
 	memset( &m_Data, 0, sizeof(__CaptureData_t) );
-	m_fCurAccelSensitivity = 0.0f;
+	m_usCurAccelSensitivity = 0;
 	m_fCurGyroSensitivity = 0.0f;
-	m_usDefaultFeatures = DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_TAP|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_SEND_CAL_GYRO|DMP_FEATURE_PEDOMETER;
+	m_usDefaultFeatures = DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_TAP|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_SEND_CAL_GYRO|DMP_FEATURE_PEDOMETER|DMP_FEATURE_SEND_TEMPERATURE;
 }
 
 MPUManager::~MPUManager()
@@ -44,10 +47,11 @@ bool MPUManager::__LoadDataFromDevice( __CaptureData_t *p_pData )
 	static unsigned short ucLen = 0;
 	static unsigned char ucMore = 0;
 	static short sMask;
+	static long lQuaternion[4];
 
 	if( 0 == __mpu_get_fifo_bytes_count(&ucLen) && ucLen >= m_usPackageLength )
 	{
-		if( 0 == dmp_read_fifo( sDataGyro, sDataAccel, p_pData->m_lDataQuat, &p_pData->m_ulTimestamp, &sMask, &ucMore ) )
+		if( 0 == dmp_read_fifo( sDataGyro, sDataAccel, lQuaternion, &p_pData->m_ulTimestamp, &sMask, &ucMore ) )
 		{
 			if( m_usDefaultFeatures&DMP_FEATURE_SEND_CAL_GYRO )
 			{
@@ -58,12 +62,20 @@ bool MPUManager::__LoadDataFromDevice( __CaptureData_t *p_pData )
 
 			if( m_usDefaultFeatures&DMP_FEATURE_SEND_RAW_ACCEL )
 			{
-				p_pData->m_sDataAccel[0] = (float)sDataAccel[0]/m_fCurAccelSensitivity;
-				p_pData->m_sDataAccel[1] = (float)sDataAccel[1]/m_fCurAccelSensitivity;
-				p_pData->m_sDataAccel[2] = (float)sDataAccel[2]/m_fCurAccelSensitivity;
+				p_pData->m_sDataAccel[0] = (float)sDataAccel[0]/m_usCurAccelSensitivity;
+				p_pData->m_sDataAccel[1] = (float)sDataAccel[1]/m_usCurAccelSensitivity;
+				p_pData->m_sDataAccel[2] = (float)sDataAccel[2]/m_usCurAccelSensitivity;
 			}
 
-			if( 0 != __mpu_get_temperature( &p_pData->m_fTemperature ) )
+			if( m_usDefaultFeatures&DMP_FEATURE_6X_LP_QUAT )
+			{
+				p_pData->m_fDataQuat[0] = (float)lQuaternion[0]/QUATERNION_CONSTANT;
+				p_pData->m_fDataQuat[1] = (float)lQuaternion[1]/QUATERNION_CONSTANT;
+				p_pData->m_fDataQuat[2] = (float)lQuaternion[2]/QUATERNION_CONSTANT;
+				p_pData->m_fDataQuat[3] = (float)lQuaternion[3]/QUATERNION_CONSTANT;
+			}
+
+			if( !(m_usDefaultFeatures&DMP_FEATURE_SEND_TEMPERATURE) || 0 != __mpu_get_temperature( &p_pData->m_fTemperature ) )
 			{
 				p_pData->m_fTemperature = 0.0f;
 			}
@@ -159,6 +171,19 @@ bool MPUManager::RemoveDataQuaternion()
 	}
 }
 
+bool MPUManager::RemoveDataTemperature()
+{
+	if( m_bRunning )
+	{
+		return false;
+	}
+	else
+	{
+		m_usDefaultFeatures &= ~DMP_FEATURE_SEND_TEMPERATURE;
+		return true;
+	}
+}
+
 bool MPUManager::SetSampleRate( unsigned short p_iRate )
 {
 	if( m_bRunning || p_iRate <= 0 )
@@ -204,7 +229,47 @@ bool MPUManager::SetUpdateDataType( MPUManager::__UpdateDataType p_iType, void (
 	}
 }
 
-bool MPUManager::__StartDevice()
+bool MPUManager::__RunSelfTest()
+{
+	int result;
+    long gyro[3], accel[3];
+	int iSuccess = 0x01|0x02;
+#ifdef AK89xx_SECONDARY
+	iSuccess |= 0x04;
+#endif
+
+    result = mpu_run_self_test(gyro, accel);
+    if (result == iSuccess) {
+        /* Test passed. We can trust the gyro data here, so let's push it down
+         * to the DMP.
+         */
+        float sens;
+        unsigned short accel_sens;
+        mpu_get_gyro_sens(&sens);
+        gyro[0] = (long)(gyro[0] * sens);
+        gyro[1] = (long)(gyro[1] * sens);
+        gyro[2] = (long)(gyro[2] * sens);
+        dmp_set_gyro_bias(gyro);
+        mpu_get_accel_sens(&accel_sens);
+        accel[0] *= accel_sens;
+        accel[1] *= accel_sens;
+        accel[2] *= accel_sens;
+        dmp_set_accel_bias(accel);
+
+		return true;
+    }
+	else
+	{
+#ifdef AK89xx_SECONDARY
+		printf("Self test failed: gyro %s; accel %s; comp %s\n", (result&0x01)?"pass":"fail", (result&0x02)?"pass":"fail", (result&0x04)?"pass":"fail" );
+#else
+		printf("Self test failed: gyro %s; accel %s\n", (result&0x01)?"pass":"fail", (result&0x02)?"pass":"fail" );
+#endif
+		return false;
+	}
+}
+
+bool MPUManager::__StartDevice( bool p_bSelfTest )
 {
 	if( 0 != mpu_init() )
 	{
@@ -249,6 +314,7 @@ bool MPUManager::__StartDevice()
 		printf("dmp_set_fifo_rate failed\n");
 		return false;
 	}
+
 	if( 0 != mpu_get_gyro_sens( &m_fCurGyroSensitivity ) )
 	{
 		printf("mpu_get_gyro_sens failed\n");
@@ -259,22 +325,28 @@ bool MPUManager::__StartDevice()
 		printf("Current Gyro Sensitivity: %.2f\n", m_fCurGyroSensitivity);
 	}
 
-	unsigned short usSens;
-	if( 0 != mpu_get_accel_sens(&usSens) )
+	if( 0 != mpu_get_accel_sens(&m_usCurAccelSensitivity) )
 	{
 		printf("mpu_get_accel_sens failed\n");
 		return false;
 	}
 	else
 	{
-		m_fCurAccelSensitivity = usSens;
-		printf("Current Accel Sensitivity: %.2f\n", m_fCurAccelSensitivity);
+		printf("Current Accel Sensitivity: %d\n", m_usCurAccelSensitivity);
 	}
 	
 	m_usPackageLength = __dmp_get_packet_length();
 	unsigned short usfr = 0;
 	dmp_get_fifo_rate( &usfr );
 	printf("DMP start success\npackage length = %d\nFIFO rate = %d\n", m_usPackageLength, usfr);
+
+	if( p_bSelfTest )
+	{
+		if( __RunSelfTest() )
+		{
+			printf("Self test passed\n");
+		}
+	}
 
 	if( 0 != mpu_set_dmp_state(1) )
 	{
@@ -285,7 +357,7 @@ bool MPUManager::__StartDevice()
 	return true;
 }
 
-bool MPUManager::Start()
+bool MPUManager::Start( bool p_bSelfTest/*=false*/ )
 {
 	if( m_bRunning )
 	{
@@ -302,16 +374,22 @@ bool MPUManager::Start()
 		return false;
 	}
 
-	if( !__StartDevice() )
+	if( !__StartDevice( p_bSelfTest ) )
 	{
 		return false;
 	}
+
+// 	if( 0 != mpu_reg_dump() )
+// 	{
+// 		printf("mpu_reg_dump failed\n");
+// 	}
 
 	if( __UDT_PullRealTime != m_iUpdateType )
 	{
 		m_bStop = false;
 		if( 0 != pthread_create( &m_iThreadID, 0, __ThreadWrap, this ) )
 		{
+			printf("create work thread failed\n");
 			Stop();
 			return false;
 		}

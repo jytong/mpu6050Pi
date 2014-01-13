@@ -136,10 +136,10 @@ static int __OpenDevice( unsigned char slave_addr )
 
 	if( (_s_fd = open( pszDeviceName, O_RDWR )) < 0 )
 	{
-		if( geteuid () != 0 )
+		if( geteuid() != 0 )
 		{
 			printf("Open device failed. Must be root to run. Should be suid root.\n");
-			return 1 ;
+			return -1 ;
 		}
 		return -1;
 	}

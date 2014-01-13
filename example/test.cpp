@@ -17,7 +17,7 @@ void __OutputData( const __CaptureData_t *p_pData )
 		_ts = p_pData->m_ulTimestamp;
 	}
 
-	printf("%2ld:  %.2f¡æ | a: x=%.5f, y=%.5f, z=%.5f | g: x=%.5f, y=%.5f, z=%.5f | q: w=%ld, x=%ld, y=%ld, z=%ld\n",
+	printf("%2ld:  %.2f¡æ | a: x=%.5f, y=%.5f, z=%.5f | g: x=%.5f, y=%.5f, z=%.5f | q: w=%.5f, x=%.5f, y=%.5f, z=%.5f\n",
 		p_pData->m_ulTimestamp - _ts,
 		p_pData->m_fTemperature,
 		p_pData->m_sDataAccel[0],
@@ -26,10 +26,10 @@ void __OutputData( const __CaptureData_t *p_pData )
 		p_pData->m_sDataGyro[0],
 		p_pData->m_sDataGyro[1],
 		p_pData->m_sDataGyro[2],
-		p_pData->m_lDataQuat[0],
-		p_pData->m_lDataQuat[1],
-		p_pData->m_lDataQuat[2],
-		p_pData->m_lDataQuat[3]
+		p_pData->m_fDataQuat[0],
+		p_pData->m_fDataQuat[1],
+		p_pData->m_fDataQuat[2],
+		p_pData->m_fDataQuat[3]
 		);
 
 	_ts = p_pData->m_ulTimestamp;
@@ -58,7 +58,7 @@ void __testpush()
 		return;
 	}
 
-	if( !pManager->Start() )
+	if( !pManager->Start(true) )
 	{
 		printf("Start failed\n");
 		return;
@@ -87,7 +87,7 @@ void __testrt()
 		return;
 	}
 
-	if( !pManager->Start() )
+	if( !pManager->Start(true) )
 	{
 		printf("Start failed\n");
 		return;
@@ -141,7 +141,7 @@ void __test()
 		return;
 	}
 
-	if( !pManager->Start() )
+	if( !pManager->Start(true) )
 	{
 		printf("Start failed\n");
 		return;
@@ -228,4 +228,3 @@ int main( int argc, char * argv[] )
 
 	return 0;
 }
-
