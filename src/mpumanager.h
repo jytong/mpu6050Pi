@@ -146,11 +146,19 @@ private:
 	void (*m_pCallback)(const __CaptureData_t *);
 	unsigned short m_usSampleRate;
 	unsigned short m_usDefaultFeatures;
+	short m_sGyroOffset[3];
+	short m_sAccelOffset[3];
 
 public:
 	static MPUManager *GetInstance();
 
 public:
+	bool SetGyroOffsetX( short p_sVal );
+	bool SetGyroOffsetY( short p_sVal );
+	bool SetGyroOffsetZ( short p_sVal );
+	bool SetAccelOffsetX( short p_sVal );
+	bool SetAccelOffsetY( short p_sVal );
+	bool SetAccelOffsetZ( short p_sVal );
 	// default data include:
 	//     Raw accelerometer data
 	//     Calibrated gyroscope data
@@ -163,6 +171,8 @@ public:
 
 	bool SetSampleRate( unsigned short p_iRate );
 	bool SetUpdateDataType( __UpdateDataType p_iType, void (*p_pfunc)(const __CaptureData_t *) );
+
+	bool DumpRegisters( unsigned char *p_pBuff, int &p_iSize );
 
 	// start capture data
 	bool Start( bool p_bSelfTest=false );

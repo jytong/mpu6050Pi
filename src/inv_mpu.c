@@ -3226,6 +3226,102 @@ int __mpu_drop_fifo_data( int len )
 	else
 		return 0;
 }
+
+int __mpu_reg_dump( unsigned char *p_pBuff, int *p_piSize )
+{
+	unsigned char ii;
+	unsigned char len;
+
+	if( 0 == p_pBuff || 0 == p_piSize || *p_piSize <= 0 )
+	{
+		return -1;
+	}
+
+	len = min( st.hw->num_reg, *p_piSize );
+
+	for (ii = 0; ii < len; ii++, p_pBuff++)
+	{
+		if (ii == st.reg->fifo_r_w || ii == st.reg->mem_r_w)
+		{
+			*p_pBuff = 0;
+			continue;
+		}
+		if (i2c_read(st.hw->addr, ii, 1, p_pBuff))
+			return -1;
+	}
+
+	*p_piSize = len;
+
+	return 0;
+}
+
+int __mpu_set_user_x_gyro_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x13, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+int __mpu_set_user_y_gyro_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x15, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+int __mpu_set_user_z_gyro_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x17, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+int __mpu_set_x_accel_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x06, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+int __mpu_set_y_accel_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x08, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+int __mpu_set_z_accel_offset( short p_sVal )
+{
+	unsigned char buf[2];
+	buf[0] = p_sVal>>8;
+	buf[1] = p_sVal&0xFF;
+	if (i2c_write(st.hw->addr, 0x0A, 2, buf))
+		return -1;
+	else
+		return 0;
+}
+
+
 #endif	// __MOTION_DRIVER_TARGET_RASPBERRY_PI
 
 /**

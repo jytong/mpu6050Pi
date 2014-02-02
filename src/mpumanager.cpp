@@ -7,8 +7,34 @@
 #include "mpumanager.h"
 #include "inv_mpu.h"
 #include "inv_mpu_dmp_motion_driver.h"
-
 #include <time.h>
+
+#define __DEBUG
+
+#ifdef __DEBUG
+#define __DReturn		"\n"
+#include "DescMPU6050Registers.h"
+
+void __ParseCfgCallback( const char *p_pszLine, void *p_pUserData )
+{
+	printf("%s", p_pszLine);
+}
+
+void __OutputDeviceStatus()
+{
+	unsigned char buff[128];
+	int iSize = sizeof(buff);
+
+	if( !MPUManager::GetInstance()->DumpRegisters( buff, iSize ) )
+	{
+		printf("DumpRegisters failed\n");
+		return;
+	}
+
+	printf("//================= config =================//\n");
+	DescMpu6050Register::Desc( buff, iSize, __ParseCfgCallback, 0 );
+}
+#endif	// __DEBUG
 
 #define DMP_FEATURE_SEND_TEMPERATURE	(0x200)
 #define QUATERNION_CONSTANT			0x40000000
@@ -25,7 +51,10 @@ MPUManager::MPUManager()
 	memset( &m_Data, 0, sizeof(__CaptureData_t) );
 	m_usCurAccelSensitivity = 0;
 	m_fCurGyroSensitivity = 0.0f;
-	m_usDefaultFeatures = DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_TAP|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_SEND_CAL_GYRO|DMP_FEATURE_PEDOMETER|DMP_FEATURE_SEND_TEMPERATURE;
+	memset( m_sGyroOffset, 0, sizeof(m_sGyroOffset) );
+	memset( m_sAccelOffset, 0, sizeof(m_sAccelOffset) );
+//	m_usDefaultFeatures = DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_SEND_CAL_GYRO|DMP_FEATURE_PEDOMETER|DMP_FEATURE_SEND_TEMPERATURE;
+	m_usDefaultFeatures = DMP_FEATURE_6X_LP_QUAT|DMP_FEATURE_GYRO_CAL|DMP_FEATURE_SEND_RAW_ACCEL|DMP_FEATURE_SEND_CAL_GYRO|DMP_FEATURE_SEND_TEMPERATURE;
 }
 
 MPUManager::~MPUManager()
@@ -277,6 +306,10 @@ bool MPUManager::__StartDevice( bool p_bSelfTest )
 		return false;
 	}
 
+#ifdef __DEBUG
+	__OutputDeviceStatus();
+#endif
+
 	/* Wake up all sensors. */
 	if( 0 != mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL) )
 	{
@@ -348,13 +381,278 @@ bool MPUManager::__StartDevice( bool p_bSelfTest )
 		}
 	}
 
+	if( 0 != m_sGyroOffset[0] )
+	{
+		if( !__mpu_set_user_x_gyro_offset(m_sGyroOffset[0]) )
+		{
+			printf("set_user_x_gyro_offset %d failed\n", m_sGyroOffset[0]);
+		}
+	}
+	if( 0 != m_sGyroOffset[1] )
+	{
+		if( !__mpu_set_user_y_gyro_offset(m_sGyroOffset[1]) )
+		{
+			printf("set_user_y_gyro_offset %d failed\n", m_sGyroOffset[1]);
+		}
+	}
+	if( 0 != m_sGyroOffset[2] )
+	{
+		if( !__mpu_set_user_z_gyro_offset(m_sGyroOffset[2]) )
+		{
+			printf("set_user_z_gyro_offset %d failed\n", m_sGyroOffset[2]);
+		}
+	}
+
+	if( 0 != m_sAccelOffset[0] )
+	{
+		if( !__mpu_set_x_accel_offset(m_sAccelOffset[0]) )
+		{
+			printf("mpu_set_x_accel_offset %d failed\n", m_sAccelOffset[0]);
+		}
+	}
+	if( 0 != m_sAccelOffset[1] )
+	{
+		if( !__mpu_set_y_accel_offset(m_sAccelOffset[1]) )
+		{
+			printf("mpu_set_y_accel_offset %d failed\n", m_sAccelOffset[1]);
+		}
+	}
+	if( 0 != m_sAccelOffset[2] )
+	{
+		if( !__mpu_set_z_accel_offset(m_sAccelOffset[2]) )
+		{
+			printf("mpu_set_z_accel_offset %d failed\n", m_sAccelOffset[2]);
+		}
+	}
+
 	if( 0 != mpu_set_dmp_state(1) )
 	{
 		printf("mpu_set_dmp_state 1 failed\n");
 		return false;
 	}
 
+	if( 0 == mpu_set_lpf(42) )
+	{
+		printf("mpu_set_lpf failed\n");
+		return false;
+	}
+
+#ifdef __DEBUG
+	__OutputDeviceStatus();
+#endif
+
 	return true;
+}
+
+bool MPUManager::SetGyroOffsetX( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sGyroOffset[0] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_user_x_gyro_offset(p_sVal) )
+		{
+			printf("set_user_x_gyro_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+bool MPUManager::SetGyroOffsetY( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sGyroOffset[1] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_user_y_gyro_offset(p_sVal) )
+		{
+			printf("set_user_y_gyro_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+bool MPUManager::SetGyroOffsetZ( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sGyroOffset[2] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_user_z_gyro_offset(p_sVal) )
+		{
+			printf("set_user_z_gyro_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+bool MPUManager::SetAccelOffsetX( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sAccelOffset[0] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_x_accel_offset(p_sVal) )
+		{
+			printf("set_user_x_accel_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+bool MPUManager::SetAccelOffsetY( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sAccelOffset[1] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_y_accel_offset(p_sVal) )
+		{
+			printf("set_user_y_accel_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+bool MPUManager::SetAccelOffsetZ( short p_sVal )
+{
+	unsigned char ucEnabled;
+
+	m_sAccelOffset[2] = p_sVal;
+	if( !m_bRunning )
+	{
+		if( 0 != mpu_get_dmp_state(&ucEnabled) )
+		{
+			printf("mpu_get_dmp_statefailed\n");
+			return false;
+		}
+
+		if( 0 != ucEnabled && 0 != mpu_set_dmp_state(0) )
+		{
+			printf("mpu_set_dmp_state 0 failed\n");
+			return false;
+		}
+
+		if( !__mpu_set_z_accel_offset(p_sVal) )
+		{
+			printf("set_user_z_accel_offset %d failed\n", p_sVal);
+		}
+
+		if( 0 != mpu_set_dmp_state(ucEnabled) )
+		{
+			printf("mpu_set_dmp_state 1 failed\n");
+		}
+	}
+
+	return true;
+}
+
+
+bool MPUManager::DumpRegisters( unsigned char *p_pBuff, int &p_iSize )
+{
+	if( 0 != __mpu_reg_dump( p_pBuff, &p_iSize) )
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
 
 bool MPUManager::Start( bool p_bSelfTest/*=false*/ )

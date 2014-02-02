@@ -157,6 +157,15 @@ int PIEXTERN __mpu_get_sleep_mode( unsigned char *p_pData );
 int PIEXTERN __mpu_set_sleep_mode( unsigned char p_ucVal );
 int PIEXTERN __mpu_get_fifo_bytes_count( unsigned short *p_usCount );
 int PIEXTERN __mpu_drop_fifo_data( int len );
+// p_piSize in/out  in: buffer length; out: got data len
+// return: 0 success; <0 fail
+int PIEXTERN __mpu_reg_dump( unsigned char *p_pBuff, int *p_piSize );
+int PIEXTERN __mpu_set_user_x_gyro_offset( short p_sVal );
+int PIEXTERN __mpu_set_user_y_gyro_offset( short p_sVal );
+int PIEXTERN __mpu_set_user_z_gyro_offset( short p_sVal );
+int PIEXTERN __mpu_set_x_accel_offset( short p_sVal );
+int PIEXTERN __mpu_set_y_accel_offset( short p_sVal );
+int PIEXTERN __mpu_set_z_accel_offset( short p_sVal );
 #endif	// __MOTION_DRIVER_TARGET_RASPBERRY_PI
 
 #ifdef __cplusplus
