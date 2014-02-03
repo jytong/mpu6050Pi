@@ -21,10 +21,6 @@
 extern "C" {
 #endif
 
-#ifndef PIEXTERN
-#define PIEXTERN extern
-#endif
-
 #define TAP_X               (0x01)
 #define TAP_Y               (0x02)
 #define TAP_Z               (0x04)
@@ -58,51 +54,51 @@ extern "C" {
 #define INV_WXYZ_QUAT       (0x100)
 
 /* Set up functions. */
-int PIEXTERN dmp_load_motion_driver_firmware(void);
-int PIEXTERN dmp_set_fifo_rate(unsigned short rate);
-int PIEXTERN dmp_get_fifo_rate(unsigned short *rate);
-int PIEXTERN dmp_enable_feature(unsigned short mask);
-int PIEXTERN dmp_get_enabled_features(unsigned short *mask);
-int PIEXTERN dmp_set_interrupt_mode(unsigned char mode);
-int PIEXTERN dmp_set_orientation(unsigned short orient);
-int PIEXTERN dmp_set_gyro_bias(long *bias);
-int PIEXTERN dmp_set_accel_bias(long *bias);
+int dmp_load_motion_driver_firmware(void);
+int dmp_set_fifo_rate(unsigned short rate);
+int dmp_get_fifo_rate(unsigned short *rate);
+int dmp_enable_feature(unsigned short mask);
+int dmp_get_enabled_features(unsigned short *mask);
+int dmp_set_interrupt_mode(unsigned char mode);
+int dmp_set_orientation(unsigned short orient);
+int dmp_set_gyro_bias(long *bias);
+int dmp_set_accel_bias(long *bias);
 
 /* Tap functions. */
-int PIEXTERN dmp_register_tap_cb(void (*func)(unsigned char, unsigned char));
-int PIEXTERN dmp_set_tap_thresh(unsigned char axis, unsigned short thresh);
-int PIEXTERN dmp_set_tap_axes(unsigned char axis);
-int PIEXTERN dmp_set_tap_count(unsigned char min_taps);
-int PIEXTERN dmp_set_tap_time(unsigned short time);
-int PIEXTERN dmp_set_tap_time_multi(unsigned short time);
-int PIEXTERN dmp_set_shake_reject_thresh(long sf, unsigned short thresh);
-int PIEXTERN dmp_set_shake_reject_time(unsigned short time);
-int PIEXTERN dmp_set_shake_reject_timeout(unsigned short time);
+int dmp_register_tap_cb(void (*func)(unsigned char, unsigned char));
+int dmp_set_tap_thresh(unsigned char axis, unsigned short thresh);
+int dmp_set_tap_axes(unsigned char axis);
+int dmp_set_tap_count(unsigned char min_taps);
+int dmp_set_tap_time(unsigned short time);
+int dmp_set_tap_time_multi(unsigned short time);
+int dmp_set_shake_reject_thresh(long sf, unsigned short thresh);
+int dmp_set_shake_reject_time(unsigned short time);
+int dmp_set_shake_reject_timeout(unsigned short time);
 
 /* Android orientation functions. */
-int PIEXTERN dmp_register_android_orient_cb(void (*func)(unsigned char));
+int dmp_register_android_orient_cb(void (*func)(unsigned char));
 
 /* LP quaternion functions. */
-int PIEXTERN dmp_enable_lp_quat(unsigned char enable);
-int PIEXTERN dmp_enable_6x_lp_quat(unsigned char enable);
+int dmp_enable_lp_quat(unsigned char enable);
+int dmp_enable_6x_lp_quat(unsigned char enable);
 
 /* Pedometer functions. */
-int PIEXTERN dmp_get_pedometer_step_count(unsigned long *count);
-int PIEXTERN dmp_set_pedometer_step_count(unsigned long count);
-int PIEXTERN dmp_get_pedometer_walk_time(unsigned long *time);
-int PIEXTERN dmp_set_pedometer_walk_time(unsigned long time);
+int dmp_get_pedometer_step_count(unsigned long *count);
+int dmp_set_pedometer_step_count(unsigned long count);
+int dmp_get_pedometer_walk_time(unsigned long *time);
+int dmp_set_pedometer_walk_time(unsigned long time);
 
 /* DMP gyro calibration functions. */
-int PIEXTERN dmp_enable_gyro_cal(unsigned char enable);
+int dmp_enable_gyro_cal(unsigned char enable);
 
 /* Read function. This function should be called whenever the MPU interrupt is
  * detected.
  */
-int PIEXTERN dmp_read_fifo(short *gyro, short *accel, long *quat,
+int dmp_read_fifo(short *gyro, short *accel, long *quat,
     unsigned long *timestamp, short *sensors, unsigned char *more);
 
 #ifdef __MOTION_DRIVER_TARGET_RASPBERRY_PI
-unsigned char PIEXTERN __dmp_get_packet_length();
+unsigned char __dmp_get_packet_length();
 #endif
 
 #ifdef __cplusplus

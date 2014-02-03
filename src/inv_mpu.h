@@ -26,11 +26,9 @@
 extern "C" {
 #endif
 
-#ifndef PIEXTERN
-#define PIEXTERN extern
-#endif
-
+#ifndef __MOTION_DRIVER_TARGET_RASPBERRY_PI
 #define __MOTION_DRIVER_TARGET_RASPBERRY_PI
+#endif
 /*
 	need library i2c-dev
 
@@ -40,8 +38,8 @@ extern "C" {
 	$sudo apt-get install i2c-tools
 */
 #ifdef __MOTION_DRIVER_TARGET_RASPBERRY_PI
-#define MPU6050
-// #define MPU9150	// for MPU9150
+//#define MPU6050
+#define MPU9150	// for MPU9150
 #endif
 /*********  end  ************/
 
@@ -85,87 +83,92 @@ struct int_param_s {
 
 /* Set up APIs */
 #ifdef __MOTION_DRIVER_TARGET_RASPBERRY_PI
-int PIEXTERN mpu_init();
+int mpu_init();
 #else
-int PIEXTERN mpu_init(struct int_param_s *int_param);
+int mpu_init(struct int_param_s *int_param);
 #endif
-int PIEXTERN mpu_init_slave(void);
-int PIEXTERN mpu_set_bypass(unsigned char bypass_on);
+int mpu_init_slave(void);
+int mpu_set_bypass(unsigned char bypass_on);
 
 /* Configuration APIs */
-int PIEXTERN mpu_lp_accel_mode(unsigned char rate);
-int PIEXTERN mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time, unsigned char lpa_freq);
-int PIEXTERN mpu_set_int_level(unsigned char active_low);
-int PIEXTERN mpu_set_int_latched(unsigned char enable);
+int mpu_lp_accel_mode(unsigned char rate);
+int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
+    unsigned char lpa_freq);
+int mpu_set_int_level(unsigned char active_low);
+int mpu_set_int_latched(unsigned char enable);
 
-int PIEXTERN mpu_set_dmp_state(unsigned char enable);
-int PIEXTERN mpu_get_dmp_state(unsigned char *enabled);
+int mpu_set_dmp_state(unsigned char enable);
+int mpu_get_dmp_state(unsigned char *enabled);
 
-int PIEXTERN mpu_get_lpf(unsigned short *lpf);
-int PIEXTERN mpu_set_lpf(unsigned short lpf);
+int mpu_get_lpf(unsigned short *lpf);
+int mpu_set_lpf(unsigned short lpf);
 
-int PIEXTERN mpu_get_gyro_fsr(unsigned short *fsr);
-int PIEXTERN mpu_set_gyro_fsr(unsigned short fsr);
+int mpu_get_gyro_fsr(unsigned short *fsr);
+int mpu_set_gyro_fsr(unsigned short fsr);
 
-int PIEXTERN mpu_get_accel_fsr(unsigned char *fsr);
-int PIEXTERN mpu_set_accel_fsr(unsigned char fsr);
+int mpu_get_accel_fsr(unsigned char *fsr);
+int mpu_set_accel_fsr(unsigned char fsr);
 
-int PIEXTERN mpu_get_compass_fsr(unsigned short *fsr);
+int mpu_get_compass_fsr(unsigned short *fsr);
 
-int PIEXTERN mpu_get_gyro_sens(float *sens);
-int PIEXTERN mpu_get_accel_sens(unsigned short *sens);
+int mpu_get_gyro_sens(float *sens);
+int mpu_get_accel_sens(unsigned short *sens);
 
-int PIEXTERN mpu_get_sample_rate(unsigned short *rate);
-int PIEXTERN mpu_set_sample_rate(unsigned short rate);
-int PIEXTERN mpu_get_compass_sample_rate(unsigned short *rate);
-int PIEXTERN mpu_set_compass_sample_rate(unsigned short rate);
+int mpu_get_sample_rate(unsigned short *rate);
+int mpu_set_sample_rate(unsigned short rate);
+int mpu_get_compass_sample_rate(unsigned short *rate);
+int mpu_set_compass_sample_rate(unsigned short rate);
 
-int PIEXTERN mpu_get_fifo_config(unsigned char *sensors);
-int PIEXTERN mpu_configure_fifo(unsigned char sensors);
+int mpu_get_fifo_config(unsigned char *sensors);
+int mpu_configure_fifo(unsigned char sensors);
 
-int PIEXTERN mpu_get_power_state(unsigned char *power_on);
-int PIEXTERN mpu_set_sensors(unsigned char sensors);
+int mpu_get_power_state(unsigned char *power_on);
+int mpu_set_sensors(unsigned char sensors);
 
-int PIEXTERN mpu_set_accel_bias(const long *accel_bias);
+int mpu_set_accel_bias(const long *accel_bias);
 
 /* Data getter/setter APIs */
-int PIEXTERN mpu_get_gyro_reg(short *data, unsigned long *timestamp);
-int PIEXTERN mpu_get_accel_reg(short *data, unsigned long *timestamp);
-int PIEXTERN mpu_get_compass_reg(short *data, unsigned long *timestamp);
-int PIEXTERN mpu_get_temperature(long *data, unsigned long *timestamp);
+int mpu_get_gyro_reg(short *data, unsigned long *timestamp);
+int mpu_get_accel_reg(short *data, unsigned long *timestamp);
+int mpu_get_compass_reg(short *data, unsigned long *timestamp);
+int mpu_get_temperature(long *data, unsigned long *timestamp);
 
-int PIEXTERN mpu_get_int_status(short *status);
-int PIEXTERN mpu_read_fifo(short *gyro, short *accel, unsigned long *timestamp, unsigned char *sensors, unsigned char *more);
-int PIEXTERN mpu_read_fifo_stream(unsigned short length, unsigned char *data, unsigned char *more);
-int PIEXTERN mpu_reset_fifo(void);
+int mpu_get_int_status(short *status);
+int mpu_read_fifo(short *gyro, short *accel, unsigned long *timestamp,
+    unsigned char *sensors, unsigned char *more);
+int mpu_read_fifo_stream(unsigned short length, unsigned char *data,
+    unsigned char *more);
+int mpu_reset_fifo(void);
 
-int PIEXTERN mpu_write_mem(unsigned short mem_addr, unsigned short length, unsigned char *data);
-int PIEXTERN mpu_read_mem(unsigned short mem_addr, unsigned short length, unsigned char *data);
-int PIEXTERN mpu_load_firmware(unsigned short length, const unsigned char *firmware,
+int mpu_write_mem(unsigned short mem_addr, unsigned short length,
+    unsigned char *data);
+int mpu_read_mem(unsigned short mem_addr, unsigned short length,
+    unsigned char *data);
+int mpu_load_firmware(unsigned short length, const unsigned char *firmware,
             unsigned short start_addr, unsigned short sample_rate);
 
-int PIEXTERN mpu_reg_dump(void);
-int PIEXTERN mpu_read_reg(unsigned char reg, unsigned char *data);
-int PIEXTERN mpu_run_self_test(long *gyro, long *accel);
-int PIEXTERN mpu_register_tap_cb(void (*func)(unsigned char, unsigned char));
+int mpu_reg_dump(void);
+int mpu_read_reg(unsigned char reg, unsigned char *data);
+int mpu_run_self_test(long *gyro, long *accel);
+int mpu_register_tap_cb(void (*func)(unsigned char, unsigned char));
 
 #ifdef __MOTION_DRIVER_TARGET_RASPBERRY_PI
-int PIEXTERN __mpu_get_device_addr( unsigned char *p_pData );
-int PIEXTERN __mpu_get_temperature( float *p_fTemperature );
-int PIEXTERN __mpu_get_clock_sel( unsigned char *p_pData );
-int PIEXTERN __mpu_get_sleep_mode( unsigned char *p_pData );
-int PIEXTERN __mpu_set_sleep_mode( unsigned char p_ucVal );
-int PIEXTERN __mpu_get_fifo_bytes_count( unsigned short *p_usCount );
-int PIEXTERN __mpu_drop_fifo_data( int len );
+int __mpu_get_device_addr( unsigned char *p_pData );
+int __mpu_get_temperature( float *p_fTemperature );
+int __mpu_get_clock_sel( unsigned char *p_pData );
+int __mpu_get_sleep_mode( unsigned char *p_pData );
+int __mpu_set_sleep_mode( unsigned char p_ucVal );
+int __mpu_get_fifo_bytes_count( unsigned short *p_usCount );
+int __mpu_drop_fifo_data( int len );
 // p_piSize in/out  in: buffer length; out: got data len
 // return: 0 success; <0 fail
-int PIEXTERN __mpu_reg_dump( unsigned char *p_pBuff, int *p_piSize );
-int PIEXTERN __mpu_set_user_x_gyro_offset( short p_sVal );
-int PIEXTERN __mpu_set_user_y_gyro_offset( short p_sVal );
-int PIEXTERN __mpu_set_user_z_gyro_offset( short p_sVal );
-int PIEXTERN __mpu_set_x_accel_offset( short p_sVal );
-int PIEXTERN __mpu_set_y_accel_offset( short p_sVal );
-int PIEXTERN __mpu_set_z_accel_offset( short p_sVal );
+int __mpu_reg_dump( unsigned char *p_pBuff, int *p_piSize );
+int __mpu_set_user_x_gyro_offset( short p_sVal );
+int __mpu_set_user_y_gyro_offset( short p_sVal );
+int __mpu_set_user_z_gyro_offset( short p_sVal );
+int __mpu_set_x_accel_offset( short p_sVal );
+int __mpu_set_y_accel_offset( short p_sVal );
+int __mpu_set_z_accel_offset( short p_sVal );
 #endif	// __MOTION_DRIVER_TARGET_RASPBERRY_PI
 
 #ifdef __cplusplus

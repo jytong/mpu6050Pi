@@ -45,10 +45,13 @@
 #include <sys/types.h>
 #include <time.h>
 // need -lrt
-static const int __sc_fdInvalid = -1;
 static int _s_fd = -1;
-static unsigned char __s_ucAddr = 0;
+#define __IS_INVALID_IOFD(fd)	((fd)<0)
 static const int __s_iMaxProcessLen = I2C_SMBUS_BLOCK_MAX;
+static unsigned char __s_ucAddr = 0;
+
+// #define MAX_WRITE_LEN 511
+// unsigned char txBuff[MAX_WRITE_LEN + 1];
 
 void delay_ms(unsigned long num_ms)
 {
@@ -112,7 +115,7 @@ static int __GetBoardRev()
 	return iRev;
 }
 
-static int __OpenDevice( unsigned char slave_addr )
+static int __OpenDevice()
 {
 	const char *pszDeviceName;
 	int iRev = __GetBoardRev();
@@ -144,6 +147,16 @@ static int __OpenDevice( unsigned char slave_addr )
 		return -1;
 	}
 
+	return 0;
+}
+
+static int __SelectSlaveAddr( unsigned char slave_addr )
+{
+	if( __s_ucAddr == slave_addr )
+	{
+		return 0;
+	}
+
 	if( ioctl(_s_fd, I2C_SLAVE, slave_addr) < 0 )
 	{
 		return -1;
@@ -156,42 +169,94 @@ static int __OpenDevice( unsigned char slave_addr )
 
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char const *data)
 {
-	if( 0 == __s_ucAddr )
+//	int result, i;
+
+	if( __IS_INVALID_IOFD(_s_fd) )
 	{
-		if( 0 != __OpenDevice( slave_addr ) )
+		if( 0 != __OpenDevice() )
 		{
 			printf("Open device failed\n");
 			return -1;
 		}
+		else
+		{
+			printf("Open device success\n");
+		}
 	}
 
-	if( __s_ucAddr != slave_addr || length > __s_iMaxProcessLen )
+	if( 0 != __SelectSlaveAddr( slave_addr ) )
 	{
-		printf("Open device failed i2c_write\n");
+		printf("__SelectSlaveAddr 0x%02x failed\n", slave_addr);
+		return -1;
+	}
+
+	if( length > __s_iMaxProcessLen )
+	{
+		printf("i2c_write len=%d > MaxProcessLen=%d\n", length,__s_iMaxProcessLen);
 		return -1;
 	}
 	else
 	{
 		return i2c_smbus_write_i2c_block_data( _s_fd, reg_addr, length, data );
 	}
+// 	if (length > MAX_WRITE_LEN) {
+// 		printf("Max write length exceeded in linux_i2c_write()\n");
+// 		return -1;
+// 	}
+//	if (length == 0) {
+// 		result = write(_s_fd, &reg_addr, 1);
+// 
+// 		if (result < 0) {
+// 			perror("write:1");
+// 			return result;
+// 		}
+// 		else if (result != 1) {
+// 			printf("Write fail:1 Tried 1 Wrote 0\n");
+// 			return -1;
+// 		}
+// 	}
+// 	else {
+// 		txBuff[0] = reg_addr;
+// 
+// 		for (i = 0; i < length; i++)
+// 			txBuff[i+1] = data[i];
+// 
+// 		result = write(_s_fd, txBuff, length + 1);
+// 
+// 		if (result < 0) {
+// 			perror("write:2");
+// 			return result;
+// 		}
+// 		else if (result < (int)length) {
+// 			printf("Write fail:2 Tried %u Wrote %d\n", length, result); 
+// 			return -1;
+// 		}
+// 	}
+//
+//	return 0;
 }
 
 int i2c_read(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char *data)
 {
 	int iReadLen;
+//	int tries, result, total;
 
-	if( 0 == __s_ucAddr )
+	if( __IS_INVALID_IOFD(_s_fd) )
 	{
-		if( 0 != __OpenDevice( slave_addr ) )
+		if( 0 != __OpenDevice() )
 		{
 			printf("Open device failed\n");
 			return -1;
 		}
+		else
+		{
+			printf("Open device success\n");
+		}
 	}
 
-	if( __s_ucAddr != slave_addr )
+	if( 0 != __SelectSlaveAddr( slave_addr ) )
 	{
-		printf("Open device failed i2c_read\n");
+		printf("__SelectSlaveAddr 0x%02x failed\n", slave_addr);
 		return -1;
 	}
 	else
@@ -209,6 +274,33 @@ int i2c_read(unsigned char slave_addr, unsigned char reg_addr, unsigned char len
 		}
 		return 0;
 	}
+// 
+// 	if (i2c_write(slave_addr, reg_addr, 0, NULL))
+// 		return -1;
+// 
+// 	total = 0;
+// 	tries = 0;
+// 
+// 	while (total < length && tries < 5) {
+// 		result = read(_s_fd, data + total, length - total);
+// 
+// 		if (result < 0) {
+// 			perror("read");
+// 			break;
+// 		}
+// 
+// 		total += result;
+// 
+// 		if (total == length)
+// 			break;
+// 
+// 		tries++;		
+// 		delay_ms(10);
+// 	}
+// 	if (total < length)
+// 		return -1;
+// 
+// 	return 0;
 }
 // end target Raspberry Pi v2 //
 ////////////////////////////////
@@ -648,9 +740,7 @@ const struct gyro_reg_s reg = {
 	/*.mem_start_addr  = */0x6E,
 	/*.prgm_start_h    = */0x70
 #ifdef AK89xx_SECONDARY
-	,/*.raw_compass   = */0x49,
-	/*.yg_offs_tc     = */0x01,
-	/*.s0_addr        = */0x25,
+	,/*.s0_addr        = */0x25,
 	/*.s0_reg         = */0x26,
 	/*.s0_ctrl        = */0x27,
 	/*.s1_addr        = */0x28,
@@ -659,7 +749,9 @@ const struct gyro_reg_s reg = {
 	/*.s4_ctrl        = */0x34,
 	/*.s0_do          = */0x63,
 	/*.s1_do          = */0x64,
-	/*.i2c_delay_ctrl = */0x67
+	/*.i2c_delay_ctrl = */0x67,
+	/*.raw_compass   = */0x49,
+	/*.yg_offs_tc     = */0x01
 #endif
 };
 const struct hw_s hw = {
@@ -731,17 +823,17 @@ const struct gyro_reg_s reg = {
 	/*.mem_start_addr =*/ 0x6E,
 	/*.prgm_start_h   =*/ 0x70
 #ifdef AK89xx_SECONDARY
-	,/*.raw_compass   =*/ 0x49,
-	/*.s0_addr        =*/ 0x25,
-	/*.s0_reg         =*/ 0x26,
-	/*.s0_ctrl        =*/ 0x27,
-	/*.s1_addr        =*/ 0x28,
-	/*.s1_reg         =*/ 0x29,
-	/*.s1_ctrl        =*/ 0x2A,
-	/*.s4_ctrl        =*/ 0x34,
-	/*.s0_do          =*/ 0x63,
-	/*.s1_do          =*/ 0x64,
-	/*.i2c_delay_ctrl =*/ 0x67
+	,/*.s0_addr        = */0x25,
+	/*.s0_reg         = */0x26,
+	/*.s0_ctrl        = */0x27,
+	/*.s1_addr        = */0x28,
+	/*.s1_reg         = */0x29,
+	/*.s1_ctrl        = */0x2A,
+	/*.s4_ctrl        = */0x34,
+	/*.s0_do          = */0x63,
+	/*.s1_do          = */0x64,
+	/*.i2c_delay_ctrl = */0x67,
+	/*.raw_compass   = */0x49
 #endif
 };
 const struct hw_s hw = {
@@ -1141,7 +1233,11 @@ int mpu_init(struct int_param_s *int_param)
 #endif
 
 #ifdef AK89xx_SECONDARY
-    setup_compass();
+    if( setup_compass() != 0 )
+	{
+		log_e("setup_compass failed\n");
+		return -1;
+	}
     if (mpu_set_compass_sample_rate(10))
         return -1;
 #else
@@ -1491,7 +1587,6 @@ int mpu_set_gyro_fsr(unsigned short fsr)
     if (i2c_write(st.hw->addr, st.reg->gyro_cfg, 1, &data))
         return -1;
     st.chip_cfg.gyro_fsr = data >> 3;
-
     return 0;
 }
 
@@ -2750,7 +2845,10 @@ static int setup_compass(void)
         int result;
         result = i2c_read(akm_addr, AKM_REG_WHOAMI, 1, data);
         if (!result && (data[0] == AKM_WHOAMI))
+		{
+			log_i("found Compass at 0x%X.\n", akm_addr);
             break;
+		}
     }
 
     if (akm_addr > 0x0F) {
@@ -2777,6 +2875,7 @@ static int setup_compass(void)
     st.chip_cfg.mag_sens_adj[0] = (long)data[0] + 128;
     st.chip_cfg.mag_sens_adj[1] = (long)data[1] + 128;
     st.chip_cfg.mag_sens_adj[2] = (long)data[2] + 128;
+	log_i("Compass sens %d, %d, %d\n", st.chip_cfg.mag_sens_adj[0], st.chip_cfg.mag_sens_adj[1], st.chip_cfg.mag_sens_adj[2] );
 
     data[0] = AKM_POWER_DOWN;
     if (i2c_write(st.chip_cfg.compass_addr, AKM_REG_CNTL, 1, data))
@@ -2856,7 +2955,10 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
     unsigned char tmp[9];
 
     if (!(st.chip_cfg.sensors & INV_XYZ_COMPASS))
+	{
+		log_e("!(st.chip_cfg.sensors & INV_XYZ_COMPASS)\n");
         return -1;
+	}
 
 #ifdef AK89xx_BYPASS
     if (i2c_read(st.chip_cfg.compass_addr, AKM_REG_ST1, 8, tmp))
@@ -2866,15 +2968,25 @@ int mpu_get_compass_reg(short *data, unsigned long *timestamp)
         return -1;
 #else
     if (i2c_read(st.hw->addr, st.reg->raw_compass, 8, tmp))
+	{
+		log_e("i2c_read failed, addr=0x%x reg=\n0x%x\n", st.hw->addr, st.reg->raw_compass);
         return -1;
+	}
 #endif
 
 #if defined AK8975_SECONDARY
     /* AK8975 doesn't have the overrun error bit. */
     if (!(tmp[0] & AKM_DATA_READY))
+	{
+		log_e("akm data is not ready, 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n",
+			tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5], tmp[6], tmp[7]);
         return -2;
+	}
     if ((tmp[7] & AKM_OVERFLOW) || (tmp[7] & AKM_DATA_ERROR))
+	{
+		log_e("akm data is overflow or error, %d\n", tmp[7]);
         return -3;
+	}
 #elif defined AK8963_SECONDARY
     /* AK8963 doesn't have the data read error bit. */
     if (!(tmp[0] & AKM_DATA_READY) || (tmp[0] & AKM_DATA_OVERRUN))
@@ -2954,14 +3066,21 @@ int mpu_get_compass_fsr(unsigned short *fsr)
 int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
     unsigned char lpa_freq)
 {
-#ifdef MPU6500
     unsigned char data[3];
-#endif
 
     if (lpa_freq) {
-#if defined MPU6500
-		unsigned char thresh_hw;
+		unsigned char thresh_hw = 0;
 
+#if defined MPU6050
+        /* TODO: Make these const/#defines. */
+        /* 1LSb = 32mg. */
+        if (thresh > 8160)
+            thresh_hw = 255;
+        else if (thresh < 32)
+            thresh_hw = 1;
+        else
+            thresh_hw = thresh >> 5;
+#elif defined MPU6500
         /* 1LSb = 4mg. */
         if (thresh > 1020)
             thresh_hw = 255;
@@ -2975,8 +3094,10 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
             /* Minimum duration must be 1ms. */
             time = 1;
 
-#if defined MPU6500
-        if (lpa_freq > 640)
+#if defined MPU6050
+		if (lpa_freq > 40)
+#elif defined MPU6500
+		if (lpa_freq > 640)
 #endif
             /* At this point, the chip has not been re-configured, so the
              * function can safely exit.
@@ -2998,7 +3119,60 @@ int mpu_lp_motion_interrupt(unsigned short thresh, unsigned char time,
             mpu_get_fifo_config(&st.chip_cfg.cache.fifo_sensors);
         }
 
-#if defined MPU6500
+#ifdef MPU6050
+        /* Disable hardware interrupts for now. */
+        set_int_enable(0);
+
+        /* Enter full-power accel-only mode. */
+        mpu_lp_accel_mode(0);
+
+        /* Override current LPF (and HPF) settings to obtain a valid accel
+         * reading.
+         */
+        data[0] = INV_FILTER_256HZ_NOLPF2;
+        if (i2c_write(st.hw->addr, st.reg->lpf, 1, data))
+            return -1;
+
+        /* NOTE: Digital high pass filter should be configured here. Since this
+         * driver doesn't modify those bits anywhere, they should already be
+         * cleared by default.
+         */
+
+        /* Configure the device to send motion interrupts. */
+        /* Enable motion interrupt. */
+        data[0] = BIT_MOT_INT_EN;
+        if (i2c_write(st.hw->addr, st.reg->int_enable, 1, data))
+            goto lp_int_restore;
+
+        /* Set motion interrupt parameters. */
+        data[0] = thresh_hw;
+        data[1] = time;
+        if (i2c_write(st.hw->addr, st.reg->motion_thr, 2, data))
+            goto lp_int_restore;
+
+        /* Force hardware to "lock" current accel sample. */
+        delay_ms(5);
+        data[0] = (st.chip_cfg.accel_fsr << 3) | BITS_HPF;
+        if (i2c_write(st.hw->addr, st.reg->accel_cfg, 1, data))
+            goto lp_int_restore;
+
+        /* Set up LP accel mode. */
+        data[0] = BIT_LPA_CYCLE;
+        if (lpa_freq == 1)
+            data[1] = INV_LPA_1_25HZ;
+        else if (lpa_freq <= 5)
+            data[1] = INV_LPA_5HZ;
+        else if (lpa_freq <= 20)
+            data[1] = INV_LPA_20HZ;
+        else
+            data[1] = INV_LPA_40HZ;
+        data[1] = (data[1] << 6) | BIT_STBY_XYZG;
+        if (i2c_write(st.hw->addr, st.reg->pwr_mgmt_1, 2, data))
+            goto lp_int_restore;
+
+        st.chip_cfg.int_motion_only = 1;
+        return 0;
+#elif defined MPU6500
         /* Disable hardware interrupts. */
         set_int_enable(0);
 

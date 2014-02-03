@@ -37,6 +37,7 @@ void delay_ms(unsigned long num_ms);
 void get_ms(unsigned long *count);
 #define log_i		printf
 #define log_e		printf
+void __no_operation(void) { }
 #elif defined MOTION_DRIVER_TARGET_MSP430
 #include "msp430.h"
 #include "msp430_clock.h"
@@ -467,7 +468,7 @@ static const unsigned short sStartAddress = 0x0400;
 #define DMP_FEATURE_SEND_ANY_GYRO   (DMP_FEATURE_SEND_RAW_GYRO | \
                                      DMP_FEATURE_SEND_CAL_GYRO)
 
-#define DMP_MAX_PACKET_LENGTH   (32)
+#define MAX_PACKET_LENGTH   (32)
 
 #define DMP_SAMPLE_RATE     (200)
 #define GYRO_SF             (46850825LL * 200 / DMP_SAMPLE_RATE)
@@ -642,9 +643,7 @@ int dmp_set_accel_bias(long *bias)
 
     mpu_get_accel_sens(&accel_sens);
     accel_sf = (long long)accel_sens << 15;
-#ifndef __MOTION_DRIVER_TARGET_RASPBERRY_PI
     __no_operation();
-#endif
 
     accel_bias_body[0] = bias[dmp.orient & 3];
     if (dmp.orient & 4)
@@ -1274,7 +1273,7 @@ int dmp_set_interrupt_mode(unsigned char mode)
 int dmp_read_fifo(short *gyro, short *accel, long *quat,
     unsigned long *timestamp, short *sensors, unsigned char *more)
 {
-    unsigned char fifo_data[DMP_MAX_PACKET_LENGTH];
+    unsigned char fifo_data[MAX_PACKET_LENGTH];
     unsigned char ii = 0;
 
     /* TODO: sensors[0] only changes when dmp_enable_feature is called. We can
