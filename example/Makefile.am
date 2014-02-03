@@ -4,7 +4,7 @@ noinst_PROGRAMS=dmptest
 
 dmptest_SOURCES=test.cpp
 
-INCLUDES=-I/usr/local/include
+INCLUDES=-I/usr/local/include/mpu6050
 
 CXXFLAGS = -O3 -Wall
 

@@ -17,7 +17,8 @@ INCLUDES=-I/usr/include
 CXXFLAGS = -O3 -Wall
 CFLAGS = -O3 -Wall
 
-include_HEADERS = src/inv_mpu_dmp_motion_driver.h src/inv_mpu.h src/mpumanager.h
+libmpu6050dmpincludedir = $(includedir)/mpu6050
+libmpu6050dmpinclude_HEADERS = src/inv_mpu_dmp_motion_driver.h src/inv_mpu.h src/mpumanager.h
 
 EXTRA_DIST = \
 	build.sh \
