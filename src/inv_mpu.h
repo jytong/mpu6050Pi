@@ -38,8 +38,8 @@ extern "C" {
 	$sudo apt-get install i2c-tools
 */
 #ifdef __MOTION_DRIVER_TARGET_RASPBERRY_PI
-//#define MPU6050
-#define MPU9150	// for MPU9150
+#define MPU6050
+//#define MPU9150	// for MPU9150
 #endif
 /*********  end  ************/
 

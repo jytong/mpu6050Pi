@@ -169,8 +169,6 @@ static int __SelectSlaveAddr( unsigned char slave_addr )
 
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char const *data)
 {
-//	int result, i;
-
 	if( __IS_INVALID_IOFD(_s_fd) )
 	{
 		if( 0 != __OpenDevice() )
@@ -199,47 +197,11 @@ int i2c_write(unsigned char slave_addr, unsigned char reg_addr, unsigned char le
 	{
 		return i2c_smbus_write_i2c_block_data( _s_fd, reg_addr, length, data );
 	}
-// 	if (length > MAX_WRITE_LEN) {
-// 		printf("Max write length exceeded in linux_i2c_write()\n");
-// 		return -1;
-// 	}
-//	if (length == 0) {
-// 		result = write(_s_fd, &reg_addr, 1);
-// 
-// 		if (result < 0) {
-// 			perror("write:1");
-// 			return result;
-// 		}
-// 		else if (result != 1) {
-// 			printf("Write fail:1 Tried 1 Wrote 0\n");
-// 			return -1;
-// 		}
-// 	}
-// 	else {
-// 		txBuff[0] = reg_addr;
-// 
-// 		for (i = 0; i < length; i++)
-// 			txBuff[i+1] = data[i];
-// 
-// 		result = write(_s_fd, txBuff, length + 1);
-// 
-// 		if (result < 0) {
-// 			perror("write:2");
-// 			return result;
-// 		}
-// 		else if (result < (int)length) {
-// 			printf("Write fail:2 Tried %u Wrote %d\n", length, result); 
-// 			return -1;
-// 		}
-// 	}
-//
-//	return 0;
 }
 
 int i2c_read(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char *data)
 {
 	int iReadLen;
-//	int tries, result, total;
 
 	if( __IS_INVALID_IOFD(_s_fd) )
 	{
@@ -274,33 +236,6 @@ int i2c_read(unsigned char slave_addr, unsigned char reg_addr, unsigned char len
 		}
 		return 0;
 	}
-// 
-// 	if (i2c_write(slave_addr, reg_addr, 0, NULL))
-// 		return -1;
-// 
-// 	total = 0;
-// 	tries = 0;
-// 
-// 	while (total < length && tries < 5) {
-// 		result = read(_s_fd, data + total, length - total);
-// 
-// 		if (result < 0) {
-// 			perror("read");
-// 			break;
-// 		}
-// 
-// 		total += result;
-// 
-// 		if (total == length)
-// 			break;
-// 
-// 		tries++;		
-// 		delay_ms(10);
-// 	}
-// 	if (total < length)
-// 		return -1;
-// 
-// 	return 0;
 }
 // end target Raspberry Pi v2 //
 ////////////////////////////////
