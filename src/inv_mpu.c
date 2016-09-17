@@ -128,6 +128,8 @@ static int __OpenDevice()
 
 	printf("Raspberry Pi board revision %d\n", iRev);
 
+//There may be some problem, some RPi have two I2C interfaces, and connect different I2C Interface has some problem with the following if code block. This comment just an advice for alert when you hit some problem with hint erro message: "Open Device failed!"
+
 	if( 2 == iRev )
 	{
 		pszDeviceName = "/dev/i2c-1";
