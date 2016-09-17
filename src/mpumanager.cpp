@@ -431,7 +431,7 @@ bool MPUManager::__StartDevice( bool p_bSelfTest )
 		return false;
 	}
 
-	if( 0 == mpu_set_lpf(42) )
+	if( 0 != mpu_set_lpf(42) )
 	{
 		printf("mpu_set_lpf failed\n");
 		return false;
